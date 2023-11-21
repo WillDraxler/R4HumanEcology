@@ -1,0 +1,159 @@
+---
+title: "Exploring Band Returns"
+author: "Eleanor"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(tidyverse)
+```
+
+
+```{r}
+bands_all <- read_csv("data/petrelbands.csv", 
+    col_types = cols(...1 = col_skip()))
+```
+
+
+```{r}
+bands_all %>% 
+  filter(!is.na(band)) %>% 
+  ggplot() + 
+  geom_bar(aes(x = as.factor(capture_year), fill = as.factor(band_year)), position = "dodge")
+
+
+bands_all %>% 
+  filter(!is.na(band)) %>% 
+  filter(band_year != capture_year) %>% 
+  ggplot() + 
+  geom_bar(aes(x = as.factor(capture_year), fill = as.factor(band_year)), position = "stack") +
+  ylab("count")
+```
+
+```{r}
+bands_all %>% 
+  group_by(BurrowID) %>% 
+  summarize(n_inhabitants = length(unique(band))) %>% 
+  count(n_inhabitants)
+```
+
+
+```{r}
+bands_all %>% 
+  group_by(BurrowID) %>% 
+  summarize(years_observed = length(unique(capture_year)), n_occupants = length(unique(band))) %>% 
+  group_by(years_observed, n_occupants) %>%
+  count(n_occupants)
+```
+
+
+```{r}
+recaptures <- bands_all %>% 
+  group_by(band) %>% 
+  summarize(captures = length(unique(capture_year))) %>% 
+  filter(captures > 1)
+
+
+bands_all %>% 
+  filter(!is.na(band)) %>% 
+  group_by(band) %>%
+  summarize(mates = length(unique(mate_band)), years_present = length(unique(capture_year))) %>%
+  filter(years_present >1) %>% 
+  arrange(desc(mates)) %>% 
+  group_by(mates, years_present) %>% 
+  mutate(potential_switches = years_present - 1) %>% 
+  mutate(actual_switches = mates - 1) %>% 
+  count(actual_switches, potential_switches)
+```
+
+
+```{r}
+bands_all %>% 
+  filter(!is.na(band)) %>% 
+  group_by(band) %>% 
+  summarize(mates = length(unique(mate_band))) %>% 
+  count(mates)
+```
+
+```{r}
+bands_all %>% 
+  filter(capture_year == 2023) %>% 
+  filter(!is.na(band)) %>% 
+  ggplot()+
+  geom_boxplot(aes(x = as.factor(band_year), y = mass))
+```
+
+```{r}
+recaptured_birds <- bands_all %>% 
+  filter(!is.na(band)) %>% 
+  group_by(band) %>% 
+  summarize(recaptures = length(unique(capture_year))) %>% 
+  filter(recaptures > 1) %>% 
+  select(band)
+
+recaptured_birds <- as.list(recaptured_birds$band)
+
+returns <- bands_all %>% 
+  filter(band %in% recaptured_birds) %>% 
+  mutate(status = "returned")
+
+never_recaptured <- bands_all %>% 
+  filter(!is.na(band)) %>% 
+  group_by(band) %>% 
+  summarize(recaptures = length(unique(capture_year))) %>% 
+  filter(recaptures == 1) %>% 
+  select(band)
+
+never_recaptured <- as.list(never_recaptured$band)
+
+nonreturns <- bands_all %>% 
+  filter(band %in% never_recaptured) %>% 
+  mutate(status = "never returned")
+
+bands_with_returns <- rbind(returns, nonreturns) 
+
+```
+
+```{r}
+bands_with_returns %>% 
+  filter(!is.na(mass)) %>% 
+  filter(!is.na(chord)) %>% 
+  ggplot() +
+  geom_boxplot(aes(x = status, y = mass), notch = TRUE)
+```
+
+```{r}
+t.test(mass ~ status, data = bands_with_returns)
+```
+
+```{r}
+massed_birds <- bands_all %>% 
+  group_by(band) %>% 
+  summarize(captures = unique(capture_year)) %>% 
+  filter(captures %in% c (2022, 2023)) %>% 
+  select(band)
+
+massed_birds <- as.list(massed_birds$band)
+
+bands_all %>% 
+  filter(band %in% massed_birds) %>% 
+  filter(capture_year %in% c(2022, 2023)) %>% 
+  ggplot(aes(x = as.factor(capture_year) , y = mass, group = band)) + 
+  geom_line()
+
+bands_all %>% 
+  filter(band %in% massed_birds) %>% 
+  filter(capture_year %in% c(2022, 2023)) %>% 
+  ggplot(aes(x = as.factor(capture_year), y = mass)) +
+  geom_boxplot()
+```
+
+```{r}
+bands_all %>% 
+  filter(!is.na(mass)) %>% 
+  ggplot(aes(x = as.factor(band_year), y = mass)) +
+  geom_violin()
+```

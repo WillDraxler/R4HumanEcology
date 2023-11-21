@@ -1,0 +1,62 @@
+```{r}
+library(tidyverse)
+library(rvest)
+library(robotstxt)
+library(lubridate)
+library(stringr)
+```
+
+
+```{r}
+scrape_low_tide <- function(month, year){
+
+url <- str_c("https://www.usharbors.com/harbor/maine/bar-harbor-me/tides/?tide=", year, "-", month, "#monthly-tide-chart")
+
+page <- read_html(url)
+
+all_tide_data <- page %>% 
+  html_nodes("td") %>% 
+  html_text() %>% 
+  as.tibble()
+
+day <- all_tide_data %>% 
+  filter(((row_number() - 1) %% 15) == 0)
+
+low_am <- all_tide_data %>% 
+  filter(((row_number() - 8) %% 15) == 0)
+
+low_pm <- all_tide_data %>% 
+  filter(((row_number() - 10) %% 15) == 0)
+
+am_df <- data.frame(day, low_am) %>% 
+  mutate(low_tide_date = dmy(str_c(value, "-", month, "-", year)))
+pm_df <- data.frame(day, low_pm) %>% 
+  mutate(low_tide_date = dmy(str_c(value, "-", month, "-", year)))
+if (exists("low_df")) {
+  low_df <<- bind_rows(low_df, am_df, pm_df) %>% 
+  select(-value)
+} else {
+low_df <<- bind_rows(am_df, pm_df)
+  }
+}
+```
+
+```{r}
+for (x in 1:10) {
+  scrape_low_tide(x, 2024)
+}
+
+low_df <- low_df %>% 
+  mutate(tide_height = as.numeric(value.1)) %>% 
+  select(-value.1)
+```
+
+```{r}
+low_df %>% 
+  ggplot(aes(low_tide_date, y = tide_height)) +
+  geom_col(orientation = "x", width = 1, color = "midnightblue") +
+  labs(title = "Low Tide Height vs Time",
+       x = "Date",
+       y = "Tide Height")
+```
+

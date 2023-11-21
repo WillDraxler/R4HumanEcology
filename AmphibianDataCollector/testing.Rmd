@@ -1,0 +1,52 @@
+```{r}
+library(htmlwidgets)
+# Create a basic Leaflet map
+my_map <- leaflet() %>%
+  addTiles() %>%
+  setView(lng = 0, lat = 0, zoom = 2)  # Set initial view
+
+# Define a click event that displays the coordinates in a popup
+my_map <- my_map %>%
+  addCircleMarkers(lng = 0, lat = 0, radius = 0, label = "Click me!", popup = "This is (0, 0).") %>%
+  addEasyButton(easyButton(
+    icon = "fa-crosshairs",
+    title = "Click to get coordinates",
+    onClick = JS("function(btn, map){
+                   map.on('click', function(e){
+                     alert('You clicked the map at ' + e.latlng.lat + ', ' + e.latlng.lng);
+                   });
+                 }")
+  ))
+
+
+```
+
+```{r}
+topoData <- readLines("https://rstudio.github.io/leaflet/json/us-10m.json") %>% paste(collapse = "\n") 
+
+leaflet() %>% setView(lng = -98.583, lat = 39.833, zoom = 3) %>%
+  addTiles() %>%
+  addTopoJSON(topoData, weight = 0.1, color = "#444444", fill = FALSE)
+```
+
+
+```{r}
+data <- read_csv("C:/Users/draxl/Downloads/big_night_data.csv")
+```
+
+```{r}
+
+
+library(shiny)
+library(htmltools)
+library(tidyverse)
+library(data.table)
+library(sp)
+library(lubridate)
+library(shinyTime)
+library(hms)
+library(bslib)
+
+shinyApp(ui, server)
+```
+

@@ -1,0 +1,245 @@
+---
+title: "Cleaning Band Return Data"
+author: "Eleanor"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+```
+
+#2022 Data Cleaning
+
+##Reading in data
+```{r}
+
+library(readr)
+
+#Read in CSV
+bands2022 <- read_csv("data/fidelitydata.csv", 
+    col_types = cols(BurrowID = col_number(), 
+        `Bird 1 Band Year` = col_date(format = "%Y"), 
+        `Bird 2 Band Year` = col_date(format = "%Y"), 
+        `Chick band` = col_skip()))
+
+
+bands2022 <- bands2022 %>% 
+  rename(bird_one_band = `Bird 1 Band`) %>% 
+  rename(bird_two_band = `Bird 2 Band`) %>% 
+  rename(bird_one_band_year = `Bird 1 Band Year`) %>% 
+  rename(bird_two_band_year = `Bird 2 Band Year`) %>% 
+  rename(bird_one_chord = `Bird 1 Chord`) %>% 
+  rename(bird_two_chord = `Bird 2 Chord`) %>% 
+  rename(bird_one_mass = `Bird 1 Weight`) %>% 
+  rename(bird_two_mass = `Bird 2 Weight`)
+#rename columns (this is not an efficient way to do this)
+
+```
+
+##Pivoting data to a long/tidy format
+```{r}
+
+#Creating a tidy dataframe of band numbers
+bands_2022_long <- bands2022 %>% 
+  select(BurrowID, bird_one_band, bird_two_band) %>% 
+  pivot_longer(cols = c(bird_one_band, bird_two_band),
+               names_to = "bird",
+               values_to = "band") %>% 
+  mutate(bird = case_when(bird == "bird_one_band" ~ "bird_one",
+                   bird == "bird_two_band" ~ "bird_two"))
+
+#Creating a tidy dataframe of wing chords
+chords_2022_long <- bands2022 %>% 
+  select(BurrowID, bird_one_chord, bird_two_chord) %>% 
+  pivot_longer(cols = c(bird_one_chord, bird_two_chord),
+               names_to = "bird",
+               values_to = "chord") %>% 
+  mutate(bird = case_when(bird == "bird_one_chord" ~ "bird_one",
+                   bird == "bird_two_chord" ~ "bird_two"))
+
+#creating a tidy dataframe of masses
+masses_2022_long <- bands2022 %>% 
+  select(BurrowID, bird_one_mass, bird_two_mass) %>% 
+  pivot_longer(cols = c(bird_one_mass, bird_two_mass),
+               names_to = "bird",
+               values_to = "mass") %>% 
+  mutate(bird = case_when(bird == "bird_one_mass" ~ "bird_one",
+                   bird == "bird_two_mass" ~ "bird_two"))
+
+#creating a tidy dataframe of band years
+bandyears_2022_long <- bands2022 %>% 
+  select(BurrowID, bird_one_band_year, bird_two_band_year) %>% 
+  pivot_longer(cols = c(bird_one_band_year, bird_two_band_year),
+               names_to = "bird",
+               values_to = "band_year") %>% 
+  mutate(bird = case_when(bird == "bird_one_band_year" ~ "bird_one",
+                   bird == "bird_two_band_year" ~ "bird_two")) %>% 
+  mutate(band_year = year(band_year))
+
+
+
+#binding band numbers and band years together
+bands_2022 <- bands_2022_long %>% 
+  full_join(bandyears_2022_long, by = c("BurrowID", "bird")) %>% 
+  full_join(masses_2022_long, by = c ("BurrowID", "bird")) %>% 
+  full_join(chords_2022_long, by = c("BurrowID", "bird"))
+
+#creating a new variable with the capture year
+bands_2022$capture_year <- 2022
+
+
+```
+
+
+#2021 Data Cleaning
+
+```{r}
+
+#reading in data
+bands2021 <- read_csv("data/fidelity2021.csv", 
+    col_types = cols(`Burrow ID` = col_skip(), 
+        NewID = col_number(), `Bird 1 Band Year` = col_date(format = "%Y"), 
+        `Bird 2 Band Year` = col_date(format = "%Y"), 
+        Breeding = col_skip(), `GPS File` = col_skip(), 
+        Establisher = col_skip(), ...10 = col_skip(), 
+        ...11 = col_skip(), ...12 = col_skip(), 
+        ...13 = col_skip(), ...14 = col_skip(), 
+        ...15 = col_skip(), ...16 = col_skip(), 
+        ...17 = col_skip()))
+
+#renaming columns
+bands2021 <- bands2021 %>% 
+  rename(bird_one_band = `Bird 1 Band`) %>% 
+  rename(bird_two_band = `Bird 2 Band`) %>% 
+  rename(bird_one_band_year = `Bird 1 Band Year`) %>% 
+  rename(bird_two_band_year = `Bird 2 Band Year`) %>% 
+  rename(BurrowID = NewID)
+
+#Making a tidy dataframe of band numbers
+bands_2021_long <- bands2021 %>% 
+  select(BurrowID, bird_one_band, bird_two_band) %>% 
+  pivot_longer(cols = c(bird_one_band, bird_two_band),
+               names_to = "bird",
+               values_to = "band") %>% 
+  mutate(bird = case_when(bird == "bird_one_band" ~ "bird_one",
+                   bird == "bird_two_band" ~ "bird_two"))
+
+#making a tidy dataframe of band years
+bandyears_2021_long <- bands2021 %>% 
+  select(BurrowID, bird_one_band_year, bird_two_band_year) %>% 
+  pivot_longer(cols = c(bird_one_band_year, bird_two_band_year),
+               names_to = "bird",
+               values_to = "band_year") %>% 
+  mutate(bird = case_when(bird == "bird_one_band_year" ~ "bird_one",
+                   bird == "bird_two_band_year" ~ "bird_two")) %>% 
+  mutate(band_year = year(band_year))
+
+#binding the two together
+bands_2021 <- bands_2021_long %>% 
+  full_join(bandyears_2021_long, by = c("BurrowID", "bird"))
+
+#creating a column of the capture year and empty columns for mass and wing chord
+bands_2021$capture_year <- 2021
+bands_2021$mass <- NA
+bands_2021$chord <- NA
+```
+
+
+
+#2023 Data Cleaning
+
+```{r}
+
+#reading in data
+bands2023 <- read_excel("data/2023_measurements_and_bands.xlsx", 
+    col_types = c("text", "text", "text", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "text", "text", "text", "numeric", 
+        "numeric", "numeric", "numeric", 
+        "numeric", "numeric", "text", "text", 
+        "text", "text", "text"))
+
+#fixing an annoying issue with the way years were read in and renaming columns. I already renamed several of them in the spreadsheet. 
+bands2023 <- bands2023 %>% 
+  mutate(BurrowID = str_extract(BurrowID, "\\d.")) %>% 
+  mutate(BurrowID = as.double(BurrowID)) %>% 
+  mutate(bird_one_band_year = case_when(bird_one_band_year == "2019" ~ 2019,
+                                        bird_one_band_year == "2020" ~ 2020,
+                                        bird_one_band_year == "2021" ~ 2021,
+                                        bird_one_band_year == "2022" ~ 2022,
+                                        bird_one_band_year == "2023" ~ 2023
+                                        )) %>% 
+  mutate(bird_two_band_year = case_when(bird_two_band_year == "2019" ~ 2019,
+                                        bird_two_band_year == "2020" ~ 2020,
+                                        bird_two_band_year == "2021" ~ 2021,
+                                        bird_two_band_year == "2022" ~ 2022,
+                                        bird_two_band_year == "2023" ~ 2023
+                                        ))
+  
+
+bands_2023_long <- bands2023 %>% 
+  select(BurrowID, bird_one_band, bird_two_band) %>% 
+  pivot_longer(cols = c(bird_one_band, bird_two_band),
+               names_to = "bird",
+               values_to = "band") %>% 
+  mutate(bird = case_when(bird == "bird_one_band" ~ "bird_one",
+                   bird == "bird_two_band" ~ "bird_two"))
+
+#Creating a tidy dataframe of wing chords
+chords_2023_long <- bands2023 %>% 
+  select(BurrowID, bird_one_chord, bird_two_chord) %>% 
+  pivot_longer(cols = c(bird_one_chord, bird_two_chord),
+               names_to = "bird",
+               values_to = "chord") %>% 
+  mutate(bird = case_when(bird == "bird_one_chord" ~ "bird_one",
+                   bird == "bird_two_chord" ~ "bird_two"))
+
+#creating a tidy dataframe of masses
+masses_2023_long <- bands2023 %>% 
+  select(BurrowID, bird_one_mass, bird_two_mass) %>% 
+  pivot_longer(cols = c(bird_one_mass, bird_two_mass),
+               names_to = "bird",
+               values_to = "mass") %>% 
+  mutate(bird = case_when(bird == "bird_one_mass" ~ "bird_one",
+                   bird == "bird_two_mass" ~ "bird_two"))
+
+bandyears_2023_long <- bands2023 %>% 
+  select(BurrowID, bird_one_band_year, bird_two_band_year) %>% 
+  pivot_longer(cols = c(bird_one_band_year, bird_two_band_year),
+               names_to = "bird",
+               values_to = "band_year") %>% 
+  mutate(bird = case_when(bird == "bird_one_band_year" ~ "bird_one",
+                   bird == "bird_two_band_year" ~ "bird_two"))
+
+bands_2023 <- bands_2023_long %>% 
+  full_join(bandyears_2023_long, by = c("BurrowID", "bird")) %>% 
+  full_join(masses_2023_long, by = c("BurrowID", "bird")) %>% 
+  full_join(chords_2023_long, by = c("BurrowID", "bird"))
+
+bands_2023$capture_year <- 2023
+```
+
+```{r}
+bands_all <- rbind(bands_2021, bands_2022, bands_2023)
+
+bands_all$band[bands_all$band == "1961-19768/2661-34268"] <- "1961-19768"
+
+bands_ordered <- arrange(bands_all, capture_year, BurrowID, bird)
+
+bands_ordered$mate_band <- NA
+
+bands_ordered$mate_band[seq(1, nrow(bands_ordered), by = 2)] <- bands_ordered$band[seq(2, nrow(bands_ordered), by = 2)]
+bands_ordered$mate_band[seq(2, nrow(bands_ordered), by = 2)] <- bands_ordered$band[seq(1, nrow(bands_ordered), by = 2)]
+
+bands_all <- bands_ordered
+bands_all
+```
+
+```{r}
+#write.csv(bands_all, "data/petrelbands.csv")
+```
+
