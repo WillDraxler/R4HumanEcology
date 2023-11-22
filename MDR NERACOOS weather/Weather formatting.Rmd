@@ -1,24 +1,30 @@
+Variables needed:
 Min temp
 Max temp
 Min wind chill
 Rain
 Notes
-```{r}
+
+```{r load-packages}
 library(tidyverse)
 library(lubridate)
 library(readxl)
 ```
 
-```{r}
+```{r read-in-2023-data}
+#A method used to read in the data from NOAA for Aug 2023, later disused for a better method
 august_2023 <- read.table("2023_august.txt") %>% 
   select(V1, V2, V3, V4, V7, V14) %>% 
   write_csv("2023_august.csv")
 ```
 
 
-```{r convert_to_american}
+```{r build-data-2023}
+#Import data from a pre-compiled seasonal 2023 data set
 data_2023 <- read_csv("2023_all_season_data.csv")
 mdr_notes_2023 <- read_csv("mdr_notes.csv")
+
+#Convert to mph and f, tidy
 data_2023 <- data_2023 %>% 
   mutate(wind_speed_mph = wind_speed * 2.237) %>% 
   mutate(air_temp_f = (air_temp * 1.8) + 32) %>% 
@@ -28,7 +34,7 @@ data_2023 <- data_2023 %>%
   select(wind_speed_mph, air_temp_f, date_full) %>% 
   filter(row_number() != 429)
 
-
+#Generate maximum daily temp from hourly temperature values
 max_temp_table <- data_2023 %>% 
   group_by(date(date_full)) %>% 
   filter(air_temp_f == max(air_temp_f)) %>% 
@@ -36,6 +42,7 @@ max_temp_table <- data_2023 %>%
   mutate(day_date = date(date_full)) %>% 
   select(max_daily_temp_f, day_date)
 
+#Generate minimum daily temp from hourly temperature values
 min_temp_table <- data_2023 %>% 
   group_by(date(date_full)) %>%
   mutate(avg_air_f = mean(air_temp_f)) %>%
@@ -44,6 +51,7 @@ min_temp_table <- data_2023 %>%
   mutate(day_date = date(date_full)) %>% 
   select(min_daily_temp_f, day_date, avg_air_f)
 
+#Generate minimum wind chill temp from hourly temperature values and wind speeds
 min_wind_chill_table <- data_2023 %>% 
   group_by(date(date_full)) %>% 
   mutate(avg_wind_mph = mean(wind_speed_mph, na.rm = TRUE)) %>% 
@@ -53,8 +61,8 @@ min_wind_chill_table <- data_2023 %>%
   mutate(day_date = date(date_full)) %>% 
   select(min_wind_chill, day_date, avg_wind_mph)
 
-
-test <- mdr_notes_2023 %>%
+#Join and write to csv
+mdr_notes_2023 %>%
   left_join(max_temp_table, by = "day_date") %>%
   left_join(min_temp_table, by = "day_date") %>% 
   left_join(min_wind_chill_table, by = "day_date") %>% 
@@ -65,16 +73,19 @@ test <- mdr_notes_2023 %>%
 ```
 
 
-```{r}
+```{r read-in-2022-data}
+#Import data from a pre-compiled seasonal 2023 data set
 season_weather_2022 <- read.table("2022_full_year.txt") %>% 
   select(V1, V2, V3, V4, V7, V14)
 colnames(season_weather_2022) <- c("year", "month", "day", "hour", "wind_speed", "air_temp")
 ```
 
-```{r}
+```{r build-data-2022}
+#Read in a seperate notes column
 mdr_notes_2022 <- read_csv("2022_notes.csv")
 colnames(mdr_notes_2022) <- c("day_date", "notes")
 
+#Convert to mph and f, tidy
 season_weather_2022 <- season_weather_2022 %>% 
   mutate(wind_speed_mph = wind_speed * 2.237) %>% 
   mutate(air_temp_f = (air_temp * 1.8) + 32) %>% 
@@ -85,7 +96,7 @@ season_weather_2022 <- season_weather_2022 %>%
   select(wind_speed_mph, air_temp_f, date_full) %>% 
   filter(row_number() != 429)
 
-
+#Generate maximum daily temp from hourly temperature values
 max_temp_table <- season_weather_2022 %>% 
   group_by(date(date_full)) %>% 
   filter(air_temp_f == max(air_temp_f)) %>% 
@@ -93,6 +104,7 @@ max_temp_table <- season_weather_2022 %>%
   mutate(day_date = date(date_full)) %>% 
   select(max_daily_temp_f, day_date)
 
+#Generate minimum daily temp from hourly temperature values
 min_temp_table <- season_weather_2022 %>% 
   group_by(date(date_full)) %>%
   mutate(avg_air_f = mean(air_temp_f)) %>%
@@ -101,6 +113,7 @@ min_temp_table <- season_weather_2022 %>%
   mutate(day_date = date(date_full)) %>% 
   select(min_daily_temp_f, day_date, avg_air_f)
 
+#Generate minimum wind chill temp from hourly temperature values and wind speeds
 min_wind_chill_table <- season_weather_2022 %>% 
   group_by(date(date_full)) %>% 
   mutate(avg_wind_mph = mean(wind_speed_mph, na.rm = TRUE)) %>% 
@@ -110,8 +123,8 @@ min_wind_chill_table <- season_weather_2022 %>%
   mutate(day_date = date(date_full)) %>% 
   select(min_wind_chill, day_date, avg_wind_mph)
 
-
-test <- mdr_notes_2022 %>%
+#Join and write to csv
+mdr_notes_2022 %>%
   left_join(max_temp_table, by = "day_date") %>%
   left_join(min_temp_table, by = "day_date") %>% 
   left_join(min_wind_chill_table, by = "day_date") %>% 

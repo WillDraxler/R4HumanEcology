@@ -1,7 +1,7 @@
 
 
 
-# Define server logic
+# Define server logic for app
 server <- function(input, output, session) {
 
 
@@ -19,7 +19,7 @@ server <- function(input, output, session) {
      #   addPopups(output$map1, loc_click$lat, loc_click$lng, popup = htmlEscape("Yo"))
      #   }) 
  
-#Create template data frame, couldn't figure out how to host online for download  
+#Create template data frame, couldn't figure out how to host online for download until later
  obs_date <- c(NA, NA, NA, NA, NA, NA, NA, NA)
  time_start  <- c(NA, NA, NA, NA, NA, NA, NA, NA)
  time_end <- c(NA, NA, NA, NA, NA, NA, NA, NA)
@@ -32,14 +32,15 @@ server <- function(input, output, session) {
  observer_num <- c(NA, NA, NA, NA, NA, NA, NA, NA)
  lead_observer_email <- c(NA, NA, NA, NA, NA, NA, NA, NA)
  obs_template <- data.frame(obs_date, time_start, time_end, init_coords, final_coords, species, count_num, temp, precip_conditions, observer_num, lead_observer_email)
- 
+
+#Mutate data frame with input from user 
  data_output <- reactive({
    obs_template %>% 
      mutate(obs_date = input$obs_date) %>% 
      mutate(time_start = hms::as_hms(input$start_time)) %>% 
      mutate(time_end = hms::as_hms(input$end_time)) %>% 
-     mutate(init_coords = str_c(input$lat_init, ", ", input$lng_init)) %>% #WRONG
-     mutate(final_coords = str_c(input$lat_final, ", ", input$lng_final)) %>% #WWRONG
+     mutate(init_coords = str_c(input$lat_init, ", ", input$lng_init)) %>% 
+     mutate(final_coords = str_c(input$lat_final, ", ", input$lng_final)) %>% 
      mutate(count_num = case_when(species == "Ambystoma maculatum" ~ input$count_ambystoma_maculatum, 
                                  species == "Plethodon cinereus" ~ input$count_plethodon_cinereus,
                                  species == "Ambystoma laterale" ~ input$count_ambystoma_laterale,
@@ -53,7 +54,8 @@ server <- function(input, output, session) {
      mutate(observer_num = input$observers) %>% 
      mutate(lead_observer_email = input$email) %>% 
      filter(count_num > 0)
-  })  
+  }) 
+#Download data as .csv if the button is selected
  output$download_df <- downloadHandler(
    filename = function() {"big_night_data.csv"},
    content = function(file) {write.csv(data_output(), file)

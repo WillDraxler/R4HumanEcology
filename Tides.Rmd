@@ -1,4 +1,7 @@
-```{r}
+
+#This is the code used for the tidal data scraping project
+
+```{r load-packages}
 library(tidyverse)
 library(rvest)
 library(robotstxt)
@@ -7,9 +10,11 @@ library(stringr)
 ```
 
 
-```{r}
+```{r scrape-and-format-data}
+#This function scrapes a year of tidal data from usharbors.com and then formats it to have low tide height and date
 scrape_low_tide <- function(month, year){
 
+#scrape data
 url <- str_c("https://www.usharbors.com/harbor/maine/bar-harbor-me/tides/?tide=", year, "-", month, "#monthly-tide-chart")
 
 page <- read_html(url)
@@ -19,6 +24,7 @@ all_tide_data <- page %>%
   html_text() %>% 
   as.tibble()
 
+#Select desired columns
 day <- all_tide_data %>% 
   filter(((row_number() - 1) %% 15) == 0)
 
@@ -28,6 +34,7 @@ low_am <- all_tide_data %>%
 low_pm <- all_tide_data %>% 
   filter(((row_number() - 10) %% 15) == 0)
 
+#Format as a usable data frame
 am_df <- data.frame(day, low_am) %>% 
   mutate(low_tide_date = dmy(str_c(value, "-", month, "-", year)))
 pm_df <- data.frame(day, low_pm) %>% 
@@ -41,17 +48,23 @@ low_df <<- bind_rows(am_df, pm_df)
 }
 ```
 
-```{r}
+```{r iterate-scrape}
+#Iterate across years
+#In this case I finished by adding the first 10 months of 2024. I couldn't do the full year because of the table having a disruptive value in November.
+for (x in 1:12) {
+  scrape_low_tide(x, 2023)
+}
 for (x in 1:10) {
   scrape_low_tide(x, 2024)
 }
-
+#Make tidal height usable in visualizations
 low_df <- low_df %>% 
   mutate(tide_height = as.numeric(value.1)) %>% 
   select(-value.1)
 ```
 
-```{r}
+```{r plot-tidal-height}
+#Plot Tidal Height by Date
 low_df %>% 
   ggplot(aes(low_tide_date, y = tide_height)) +
   geom_col(orientation = "x", width = 1, color = "midnightblue") +

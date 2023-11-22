@@ -1,3 +1,4 @@
+#Load packages
 library(shiny)
 library(htmltools)
 library(tidyverse)
@@ -10,12 +11,13 @@ library(bslib)
 
 # Define UI for application
 ui <- fluidPage(
+    #Set theme to dark
     theme = bslib::bs_theme(bootswatch = "darkly"),
     # Application title
     titlePanel(title = "Big Night Amphibian Data Collection", windowTitle = "Big Night Amphibian Data Collection"),
-    # Sidebar with a slider input for number of bins
     fluidPage(
     ),
+    #Create a sidebar panel with every form question except those for species counts
     sidebarLayout(
         sidebarPanel(
           width = 3,
@@ -38,6 +40,7 @@ ui <- fluidPage(
           numericInput("observers", "How many people were involved with observing?", value = 1),
           textInput("email", "At what email can we contact you with questions about your data?")
         ),
+        #Fill main panel with a number selector for each species
         mainPanel(
           width = 9,
           numericInput("count_ambystoma_maculatum", "Spotted Salamander (Ambystoma maculatum)", value = 0),
